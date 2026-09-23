@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: quizplay
+      POSTGRES_PASSWORD: quizplay
+      POSTGRES_DB: quizplay
+    ports:
+      - '5432:5432'
+    volumes:
+      - quizplay_pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+
+volumes:
+  quizplay_pgdata:
