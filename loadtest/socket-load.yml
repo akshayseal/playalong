@@ -1,0 +1,43 @@
+# Load test: simulates players connecting over Socket.IO and hammering the
+# join/leaderboard path. Run against a session you've already created and
+# started via the quizmaster dashboard.
+#
+# Usage:
+#   1. In the quizmaster dashboard, create a quiz with a few questions,
+#      create a session, and note its numeric session id + join code.
+#   2. Register N test player accounts (or reuse one token for a lighter
+#      "read" test) and put a valid player JWT in PLAYER_TOKEN below.
+#   3. npx --yes artillery@latest run loadtest/socket-load.yml --target ws://localhost:4000
+#      (artillery is fetched on demand via npx, not a project dependency —
+#      the first run needs internet access to download it)
+#
+# This exercises connection scale and the join/answer round trip, which is
+# where most of the CPU and Redis traffic under 1000 concurrent players goes.
+
+config:
+  target: "ws://localhost:4000"
+  phases:
+    - duration: 30
+      arrivalRate: 20
+      name: "Ramp to ~600 connections"
+    - duration: 60
+      arrivalRate: 7
+      name: "Sustain toward ~1000 connections"
+  engines:
+    socketio-v3: {}
+
+scenarios:
+  - engine: socketio-v3
+    flow:
+      - emit:
+          channel: "join_session"
+          data:
+            sessionId: "{{ $processEnvironment.LOAD_TEST_SESSION_ID }}"
+      - think: 3
+      - emit:
+          channel: "submit_answer"
+          data:
+            sessionId: "{{ $processEnvironment.LOAD_TEST_SESSION_ID }}"
+            questionId: "{{ $processEnvironment.LOAD_TEST_QUESTION_ID }}"
+            selectedOption: "A"
+      - think: 5
